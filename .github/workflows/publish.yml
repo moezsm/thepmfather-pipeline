@@ -1,0 +1,71 @@
+name: Publish
+
+# Manual only. Always uploads as PRIVATE; a human publishes in YouTube Studio.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL of a video file (record) or a .zip/.tar.gz archive of screenshots (screens)"
+        required: true
+        type: string
+      mode:
+        description: "Pipeline to run"
+        required: true
+        type: choice
+        options: [record, screens]
+        default: record
+      format:
+        description: "Output format (screens mode only)"
+        required: false
+        type: choice
+        options: [video, short]
+        default: video
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install pmfather
+        run: pip install -e .
+      - name: Download input
+        env:
+          INPUT_URL: ${{ inputs.url }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          mkdir -p input
+          if [ "$MODE" = "record" ]; then
+            curl -fsSL "$INPUT_URL" -o input/recording.mp4
+          else
+            curl -fsSL "$INPUT_URL" -o input/screens-archive
+            mkdir -p input/screens
+            case "$INPUT_URL" in
+              *.zip) unzip -q input/screens-archive -d input/screens ;;
+              *) tar -xzf input/screens-archive -C input/screens ;;
+            esac
+          fi
+      - name: Run pipeline (private upload)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          WHISPER_MODEL: ${{ secrets.WHISPER_MODEL }}
+          YOUTUBE_CLIENT_SECRET_JSON: ${{ secrets.YOUTUBE_CLIENT_SECRET_JSON }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          MODE: ${{ inputs.mode }}
+          FORMAT: ${{ inputs.format }}
+        run: |
+          if [ "$MODE" = "record" ]; then
+            pmfather run input/recording.mp4 --privacy private
+          else
+            pmfather from-screens input/screens --format "$FORMAT" --privacy private
+          fi
