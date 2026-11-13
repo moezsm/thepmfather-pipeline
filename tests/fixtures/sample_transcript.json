@@ -1,0 +1,11 @@
+{
+  "language": "en",
+  "duration": 130.0,
+  "segments": [
+    {"start": 0.0, "end": 8.5, "text": "Today I plan a small app with an AI assistant."},
+    {"start": 8.5, "end": 40.0, "text": "First I write the goals and the main user stories."},
+    {"start": 40.0, "end": 75.2, "text": "Then I ask the assistant to draft the backlog."},
+    {"start": 75.2, "end": 105.0, "text": "I review every item and fix what is unclear."},
+    {"start": 105.0, "end": 130.0, "text": "To finish, I export the plan and share it with the team."}
+  ]
+}
